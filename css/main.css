@@ -1,0 +1,124 @@
+body, html {
+  height: 100%;
+  margin: 0;
+  color: #777;
+}
+/*#hlimg-1, #hlimg-2, #hlimg-3, #hlimg-4, #wcimg-1, #wcimg-2, #wcimg-3, #wcimg-4, #wcimg-5{*/
+.bgimg {
+  position: relative;
+  opacity: 0.65;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+}
+
+#hlimg-1 {
+  background-image: url("../img/hyperloop_img_1.jpg");
+  min-height: 100%;
+}
+
+#hlimg-2 {
+  background-image: url("../img/hyperloop_img_2.jpg");
+  min-height: 400px;
+}
+
+#hlimg-3 {
+  background-image: url("../img/hyperloop_img_3.jpg");
+  min-height: 400px;
+}
+
+#hlimg-4 {
+  background-image: url("../img/hyperloop_img_4.jpg");
+  min-height: 100%;
+}
+
+#wcimg-1 {
+  background-image: url("../img/wordclock_img_1.jpg");
+  min-height: 100%;
+}
+
+#wcimg-2 {
+  background-image: url("../img/wordclock_img_2.jpg");
+  min-height: 100%;
+}
+
+#wcimg-3 {
+  background-image: url("../img/wordclock_img_3.jpg");
+  min-height: 100%;
+}
+
+#wcimg-4 {
+  background-image: url("../img/wordclock_img_4.jpg");
+  min-height: 100%;
+}
+
+#wcimg-5 {
+  background-image: url("../img/wordclock_img_5.jpg");
+  min-height: 100%;
+}
+
+#bsimg-1 {
+  background-image: url("../img/baesystems_img_1.jpg");
+  min-height: 100%;
+}
+
+#bsimg-2 {
+  background-image: url("../img/baesystems_img_2.jpg");
+  min-height: 100%;
+}
+
+#bsimg-3 {
+  background-image: url("../img/baesystems_img_3.jpg");
+  min-height: 100%;
+}
+
+#bsimg-4 {
+  background-image: url("../img/baesystems_img_4.jpg");
+  min-height: 100%;
+}
+
+#bsimg-5 {
+  background-image: url("../img/baesystems_img_5.jpg");
+  min-height: 100%;
+}
+
+#titleimg-1 {
+  background-image: url("../img/title_img_1.jpg");
+  min-height: 100%;
+}
+
+
+.caption {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  letter-spacing: 10px;
+
+}
+
+.caption span.border {
+  color: #fff;
+  padding: 18px;
+  font-size: 25px;
+  letter-spacing: 10px;
+}z
+
+a {
+  color: black;
+}
+
+/* Turn off parallax scrolling for tablets and phones */
+@media only screen and (max-device-width: 1024px) {
+    .hlimg-1, .hlimg-2, .hlimg-3 {
+        background-attachment: scroll;
+    }
+
+    a {
+        color: white;
+    }
+}
