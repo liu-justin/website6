@@ -90,11 +90,19 @@ class Triangle {
 	}
 
     check_mouse() {
-        console.log(ctx.isPointInPath(mouse_pt.x, mouse_pt.y));
+        //console.log(ctx.isPointInPath(mouse_pt.x, mouse_pt.y));
+        if (ctx.isPointInPath(mouse_pt.x, mouse_pt.y))
+        {  
+            // need to add it to an increment list, this is just incrementing
+            // every triangle only needs one of these
+            // maybe can have another roster in increment_table that runs through the checkmouse
+            // once this is called, just remove this triangle from the new roster
+            increment_table.add(this);
+        }
     }
 
 	point_moving(direction) {
-		// flip is reserved?
+		// name flip is reserved? --> no, its because a variable is called flip
         // direction is either 0 (vertical), 1(from left), 2(from right)
 		// direction is also the point which will be moving in the array 0-mid, 1-left, 2-right
 
@@ -168,6 +176,24 @@ function get_mouse_position(canvas, evt) {
     };
 }
 
+// better ways to do this, like making a class
+// method to add triangles
+// attribute for number of steps comes from the triangle  class
+// after a triangle reaches the number of steps, remove the triangle from the array
+var increment_table = {
+    roster: [],
+    length: 1,
+    number_of_steps: function() {return this.length*fps;},
+    add: function(x) {
+        this.roster.push(x);
+    },
+    remove: function() {
+        this.roster.shift();
+    }
+
+}
+
+// any way to make this not global?
 var mouse_pt;
 
 function init() {
@@ -175,11 +201,9 @@ function init() {
     ctx = canvas.getContext("2d");
     canvas.addEventListener("mousemove", function(evt) {
         mouse_pt = get_mouse_position(canvas, evt);
-        console.log(mouse_pt.x + ":" + mouse_pt.y);
     }, false);
     tri1.point_moving(1);
     timer = setInterval(draw_main, 1000/fps);
-    console.log(tri1.midx);
     return timer;  
 }
 
@@ -187,8 +211,7 @@ function draw_main() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     tri1.draw();
     tri1.check_mouse();
-    tri1.increment(1);
-    console.log(tri1.midx);
+    //tri1.increment(1);
 }
 
 
