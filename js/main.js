@@ -89,6 +89,10 @@ class Triangle {
 		ctx.stroke();
 	}
 
+    check_mouse() {
+        console.log(ctx.isPointInPath(mouse_pt.x, mouse_pt.y));
+    }
+
 	point_moving(direction) {
 		// flip is reserved?
         // direction is either 0 (vertical), 1(from left), 2(from right)
@@ -164,12 +168,14 @@ function get_mouse_position(canvas, evt) {
     };
 }
 
+var mouse_pt;
+
 function init() {
     canvas = document.getElementById("title_canvas");
     ctx = canvas.getContext("2d");
     canvas.addEventListener("mousemove", function(evt) {
-        var mouse_pt = get_mouse_position(canvas, evt);
-        console.log(mouse_pt);
+        mouse_pt = get_mouse_position(canvas, evt);
+        console.log(mouse_pt.x + ":" + mouse_pt.y);
     }, false);
     tri1.point_moving(1);
     timer = setInterval(draw_main, 1000/fps);
@@ -180,6 +186,7 @@ function init() {
 function draw_main() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     tri1.draw();
+    tri1.check_mouse();
     tri1.increment(1);
     console.log(tri1.midx);
 }
