@@ -109,7 +109,7 @@ class Triangle {
             // maybe can have another animation_roster in iteration_table that runs through the checkmouse
             // once this is called, just remove this triangle from the new animation_roster
             iteration_table.add_ani(this);
-            iteration_table.remove_undug(this);
+            //iteration_table.remove_undug(this);
 
         }
     }
@@ -202,7 +202,11 @@ let iteration_table = {
     length: 1,
     number_of_steps: function() {return this.length*fps;},
     add_ani: function(x) {
-        this.animation_roster.push(x);
+        // this is a efficiency move, i believe; not checking for dups and instead removing from the first list
+        //this.animation_roster.push(x);
+
+        let index = this.animation_roster.indexOf(x);
+        if(typeof this.animation_roster[index] === 'undefined') this.animation_roster.push(x);
     },
     remove_ani: function() {
         this.animation_roster.shift();
