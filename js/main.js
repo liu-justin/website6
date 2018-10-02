@@ -5,6 +5,10 @@
 //  when hover is first not active, do the same
 //  flip along the axis of the side that is not marked
 
+//10-1: had problem where it was only mouse checking the last one in array
+//      because the checker is checking is point in path, the last drawn path
+//      need to draw and check, draw and check
+
 "use strict"
 
 var canvas;
@@ -46,6 +50,13 @@ class Triangle {
         // midpoint of the anchor line, the line created by the two points that are not moving
         // will not update after the first point moving
         this.radius = [0,0];
+
+        // need to have the animation length in seconds
+        // copy pasted from increment method, forgot to change let to this.
+        this.length = 1;
+        this.number_of_steps = this.length*fps;
+        this.step_size = Math.PI/this.number_of_steps;
+        this.step_count = 0;
     }
 
 	draw() {
@@ -95,9 +106,11 @@ class Triangle {
         {  
             // need to add it to an increment list, this is just incrementing
             // every triangle only needs one of these
-            // maybe can have another roster in increment_table that runs through the checkmouse
-            // once this is called, just remove this triangle from the new roster
-            increment_table.add(this);
+            // maybe can have another animation_roster in iteration_table that runs through the checkmouse
+            // once this is called, just remove this triangle from the new animation_roster
+            iteration_table.add_ani(this);
+            iteration_table.remove_undug(this);
+
         }
     }
 
@@ -153,17 +166,18 @@ class Triangle {
 
         // triangle goes through angle 0-PI, but need to shift it so zero point is midpoint
 
-        // need to have the animation length in seconds
-        let length = 1;
-        let number_of_steps = length*fps;
-        let step_size = Math.PI/number_of_steps;
-
         // not -=, need to grab the starting value from movingcoord
         this.all_pt[direction][0] = this.runner_pt[0][0] - this.radius[0]*(1-Math.cos(this.angle_x));
         this.all_pt[direction][1] = this.runner_pt[0][1] - this.radius[1]*(1-Math.cos(this.angle_y));
 
-        this.angle_x += step_size;
-        this.angle_y += step_size;
+        this.angle_x += this.step_size;
+        this.angle_y += this.step_size;
+        this.step_count += 1;
+        console.log(this.step_count);
+        if (this.step_count == this.number_of_steps)
+        {
+            iteration_table.remove_ani();
+        }
     }
 
 }
@@ -180,17 +194,24 @@ function get_mouse_position(canvas, evt) {
 // method to add triangles
 // attribute for number of steps comes from the triangle  class
 // after a triangle reaches the number of steps, remove the triangle from the array
-var increment_table = {
-    roster: [],
+
+
+let iteration_table = {
+    undug_roster: [],
+    animation_roster: [],
     length: 1,
     number_of_steps: function() {return this.length*fps;},
-    add: function(x) {
-        this.roster.push(x);
+    add_ani: function(x) {
+        this.animation_roster.push(x);
     },
-    remove: function() {
-        this.roster.shift();
-    }
+    remove_ani: function() {
+        this.animation_roster.shift();
+    },
 
+    remove_undug: function(x) {
+        let index = this.undug_roster.indexOf(x);
+        this.undug_roster.splice(index,1);
+    }
 }
 
 // any way to make this not global?
@@ -202,22 +223,47 @@ function init() {
     canvas.addEventListener("mousemove", function(evt) {
         mouse_pt = get_mouse_position(canvas, evt);
     }, false);
-    tri1.point_moving(1);
+    
+    for (let i = 0; i < triangles.length; i++)
+    {
+        triangles[i].point_moving(1);
+        iteration_table.undug_roster.push(triangles[i]);
+    }
+
     timer = setInterval(draw_main, 1000/fps);
     return timer;  
 }
 
 function draw_main() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    tri1.draw();
-    tri1.check_mouse();
+    //tri1.draw();
+    //tri2.draw();
+    //tri3.draw();
+    for (let i=0; i<iteration_table.undug_roster.length; i++)
+    {
+        triangles[i].draw();
+        iteration_table.undug_roster[i].check_mouse();
+    }
+    for (let i=0; i<iteration_table.animation_roster.length; i++)
+    {
+        iteration_table.animation_roster[i].increment(1);
+    }
+    //tri1.check_mouse();
     //tri1.increment(1);
 }
 
+let triangles =[];
+for (let i = 0; i < 3; i++)
+{
+    triangles[i]=new Triangle(250+50*i,250,50,1);
+}
 
-let tri1 = new Triangle(250,250,50,1);
-
+/*let tri1 = new Triangle(250,250,50,1);
 tri1.draw();
+let tri2 = new Triangle(300,250,50,1);
+tri2.draw();
+let tri3 = new Triangle(350,250,50,1);
+tri3.draw();*/
 /*
 let tri2 = new Triangle(275,250,50,-1);
 tri2.draw();
