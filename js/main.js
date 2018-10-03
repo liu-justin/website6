@@ -9,6 +9,9 @@
 //      because the checker is checking is point in path, the last drawn path
 //      need to draw and check, draw and check
 
+//10-2; two options for wall check, either gather all wall checks for all frames and only take the first and last
+//                                  or make checkmouse if function unique
+
 "use strict"
 
 var canvas;
@@ -51,6 +54,13 @@ class Triangle {
         // will not update after the first point moving
         this.radius = [0,0];
 
+        // this array stores the closest wall to the mouse every single frame
+        // ways to improve, only store when checkMouse turns from false to true, and true to false
+        //this.closest_wall_to_mouse_pos = [];
+
+        // stores the previous bool for when checkMouse case
+        this.mouse_capt = false;
+
         // need to have the animation length in seconds
         // copy pasted from increment method, forgot to change let to this.
         this.length = 1;
@@ -64,54 +74,45 @@ class Triangle {
         ctx = canvas.getContext("2d");
 		ctx.beginPath();
 
-		// based off of the geometric center
-		/*ctx.moveTo(this.center_pt_x, this.center_pt_y-this.flip*r);
-		ctx.lineTo(this.center_pt_x+(this.side/2), this.center_pt_y+this.flip*(r/2));
-		ctx.lineTo(this.center_pt_x-(this.side/2), this.center_pt_y+this.flip*(r/2));
-		ctx.closePath();
-		ctx.stroke();*/
-
-		// based off half height of the side length, raw code
-		//ctx.moveTo(this.center_pt_x, this.center_pt_y-this.flip*(d3*r/4));
-		//ctx.lineTo(this.center_pt_x+(this.side/2), this.center_pt_y+this.flip*(3*r/4));
-		//ctx.lineTo(this.center_pt_x-(this.side/2), this.center_pt_y+this.flip*(3*r/4));
-
-		// based off midx midy leftx lefty rightx righty
-		//ctx.moveTo(this.midx, this.midy);
-		//ctx.lineTo(this.leftx, this.lefty);
-		//ctx.lineTo(this.rightx, this.righty);
-
-
 		// based off all_pt
 		ctx.moveTo(this.all_pt[0][0], this.all_pt[0][1]);
 		ctx.lineTo(this.all_pt[1][0], this.all_pt[1][1]);
 		ctx.lineTo(this.all_pt[2][0], this.all_pt[2][1]);
 		
-
-		// based off geometric center again, but just moving origin first DOESNT WORK
-		/*
-		let ygeo=this.center_pt_y-this.flip*Math.sqrt(3)*this.side/12;
-		console.log(ygeo);
-		ctx.moveTo(this.center_pt_x, ygeo-this.flip*r);
-		ctx.lineTo(this.center_pt_x+(this.side/2), ygeo+this.flip*(r/2));
-		ctx.lineTo(this.center_pt_x-(this.side/2), ygeo+this.flip*(r/2));
-		*/
 		ctx.closePath();
 		ctx.stroke();
 	}
 
     check_mouse() {
-        //console.log(ctx.isPointInPath(mouse_pt.x, mouse_pt.y));
-        if (ctx.isPointInPath(mouse_pt.x, mouse_pt.y))
+        // need to check the second wall, need to keep a bool to mark how many times this occurs
+        let current_mouse_capt = ctx.isPointInPath(mouse_pt.x, mouse_pt.y);
+        if (current_mouse_capt == !this.mouse_capt)
         {  
-            // need to add it to an increment list, this is just incrementing
-            // every triangle only needs one of these
-            // maybe can have another animation_roster in iteration_table that runs through the checkmouse
-            // once this is called, just remove this triangle from the new animation_roster
-            iteration_table.add_ani(this);
-            //iteration_table.remove_undug(this);
+            //iteration_table.add_ani(this);
+            ////iteration_table.remove_undug(this);
 
+            // if current = true when previous = false, then add; vice versa
+            iteration_table.mod_ani(true, this);
+            let wall = this.check_wall();
+            console.log("wall: " + wall);
         }
+        this.mouse_capt = current_mouse_capt;
+    }
+
+    check_wall() {
+        // all need to do is calc distances from the 3 points; whichever point is furthest away, the corresponding wall is closest
+        let distances = [Math.sqrt(Math.pow(mouse_pt.x-this.all_pt[0][0],2)+Math.pow(mouse_pt.y-this.all_pt[0][1],2)),
+                         Math.sqrt(Math.pow(mouse_pt.x-this.all_pt[1][0],2)+Math.pow(mouse_pt.y-this.all_pt[1][1],2)),
+                         Math.sqrt(Math.pow(mouse_pt.x-this.all_pt[2][0],2)+Math.pow(mouse_pt.y-this.all_pt[2][1],2))];
+
+        let max = distances[0];
+
+        for (let i = 1; i < distances.length; i++)
+        {
+            if (distances[i]>max) max = distances[i];
+        }
+
+        return distances.indexOf(max);
     }
 
 	point_moving(direction) {
@@ -174,9 +175,10 @@ class Triangle {
         this.angle_y += this.step_size;
         this.step_count += 1;
         console.log(this.step_count);
-        if (this.step_count == this.number_of_steps)
+        if (this.step_count >= this.number_of_steps)
         {
             iteration_table.remove_ani();
+            this.step_size=0;
         }
     }
 
@@ -203,6 +205,8 @@ let iteration_table = {
     number_of_steps: function() {return this.length*fps;},
     add_ani: function(x) {
         // this is a efficiency move, i believe; not checking for dups and instead removing from the first list
+        // this doesnt work, drawing is messed up
+
         //this.animation_roster.push(x);
 
         let index = this.animation_roster.indexOf(x);
@@ -210,6 +214,11 @@ let iteration_table = {
     },
     remove_ani: function() {
         this.animation_roster.shift();
+    },
+
+    mod_ani: function(b, x) {
+        if (b) this.add_ani(x);
+        else this.remove_ani();
     },
 
     remove_undug: function(x) {
@@ -224,36 +233,39 @@ var mouse_pt;
 function init() {
     canvas = document.getElementById("title_canvas");
     ctx = canvas.getContext("2d");
-    canvas.addEventListener("mousemove", function(evt) {
-        mouse_pt = get_mouse_position(canvas, evt);
-    }, false);
+    
     
     for (let i = 0; i < triangles.length; i++)
     {
-        triangles[i].point_moving(1);
+        triangles[i].point_moving(0);
         iteration_table.undug_roster.push(triangles[i]);
     }
+
+    canvas.addEventListener("mousemove", function(evt) {
+        mouse_pt = get_mouse_position(canvas, evt);
+    }, false);
 
     timer = setInterval(draw_main, 1000/fps);
     return timer;  
 }
 
 function draw_main() {
+    // clear the screen first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    //tri1.draw();
-    //tri2.draw();
-    //tri3.draw();
+
+    // loop through all triangles in the undug_roster, draw them and check_mouse
     for (let i=0; i<iteration_table.undug_roster.length; i++)
     {
         triangles[i].draw();
         iteration_table.undug_roster[i].check_mouse();
     }
+
+    // loop through all triangles in the animation_roster(dugup roster), and increment them
+    // can just draw them in here as well --> didnt work
     for (let i=0; i<iteration_table.animation_roster.length; i++)
     {
-        iteration_table.animation_roster[i].increment(1);
+        iteration_table.animation_roster[i].increment(0);
     }
-    //tri1.check_mouse();
-    //tri1.increment(1);
 }
 
 let triangles =[];
