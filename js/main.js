@@ -10,7 +10,7 @@
 //      need to draw and check, draw and check
 
 //10-2; two options for wall check, either gather all wall checks for all frames and only take the first and last
-//                                  or make checkmouse if function unique
+//                                  or make check_mouse if function unique
 
 "use strict"
 
@@ -58,6 +58,10 @@ class Triangle {
         // ways to improve, only store when checkMouse turns from false to true, and true to false
         //this.closest_wall_to_mouse_pos = [];
 
+        // this array stores the closest wall when entering and exiting the triangle
+        // walls are labeled by the point across from it; 0 is bot, etc;
+        this.wall = [];
+
         // stores the previous bool for when checkMouse case
         this.mouse_capt = false;
 
@@ -92,9 +96,21 @@ class Triangle {
             ////iteration_table.remove_undug(this);
 
             // if current = true when previous = false, then add; vice versa
-            iteration_table.mod_ani(true, this);
-            let wall = this.check_wall();
-            console.log("wall: " + wall);
+            
+            this.wall.push(this.check_wall());
+            console.log(this.wall);
+
+            // if the current mouse position is not in the tri when the previous one is, then the mouse has left
+            // add the triangle to the animation roster, and calc its moving point from the 2 walls
+            if (!current_mouse_capt && this.mouse_capt)
+            {
+                iteration_table.mod_ani(true, this);
+                this.point_moving(3-this.wall[0]-this.wall[1]);
+
+                // now I dont need to check_mouse anymore, just make check_mouse nothing
+                this.check_mouse = function() {};
+            }
+            
         }
         this.mouse_capt = current_mouse_capt;
     }
@@ -234,11 +250,12 @@ function init() {
     canvas = document.getElementById("title_canvas");
     ctx = canvas.getContext("2d");
     
-    
-    for (let i = 0; i < triangles.length; i++)
+    let side_length = 50;
+    for (let i = 0; i < 9; i++)
     {
-        triangles[i].point_moving(0);
-        iteration_table.undug_roster.push(triangles[i]);
+        // for the flip, need to convert 0->1, 1-> -1 --> *-2+1
+        let tri=new Triangle(50+side_length*i/2,250,side_length,(i%2)*-2+1);
+        iteration_table.undug_roster.push(tri);
     }
 
     canvas.addEventListener("mousemove", function(evt) {
@@ -256,7 +273,7 @@ function draw_main() {
     // loop through all triangles in the undug_roster, draw them and check_mouse
     for (let i=0; i<iteration_table.undug_roster.length; i++)
     {
-        triangles[i].draw();
+        iteration_table.undug_roster[i].draw();
         iteration_table.undug_roster[i].check_mouse();
     }
 
@@ -264,15 +281,12 @@ function draw_main() {
     // can just draw them in here as well --> didnt work
     for (let i=0; i<iteration_table.animation_roster.length; i++)
     {
-        iteration_table.animation_roster[i].increment(0);
+        iteration_table.animation_roster[i].increment(3-iteration_table.animation_roster[i].wall[0]-iteration_table.animation_roster[i].wall[1]);
+        
     }
 }
 
-let triangles =[];
-for (let i = 0; i < 3; i++)
-{
-    triangles[i]=new Triangle(250+50*i,250,50,1);
-}
+
 
 /*let tri1 = new Triangle(250,250,50,1);
 tri1.draw();
