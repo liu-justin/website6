@@ -251,11 +251,11 @@ function init() {
     ctx = canvas.getContext("2d");
     
     let side_length = 50;
-    for (let i = 0; i < 9; i++)
+    for (let i = 0; i < 100; i++)
     {
         // for the flip, need to convert 0->1, 1-> -1 --> *-2+1
-        let tri=new Triangle(50+side_length*i/2,250,side_length,(i%2)*-2+1);
-        iteration_table.undug_roster.push(tri);
+        let tri=new Triangle(0+side_length*(i%20)/2,0+Math.sqrt(3)/2*side_length*~~(i/20),side_length,((i%2)^((i/20)%2))*-2+1);
+        iteration_table.undug_roster.push(tri); // (i/20)%2
     }
 
     canvas.addEventListener("mousemove", function(evt) {
