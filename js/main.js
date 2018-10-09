@@ -85,11 +85,30 @@ class Triangle {
 		
 		ctx.closePath();
 		ctx.stroke();
+
+        ctx.font = "10px Arial";
+        ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
 	}
+
+    draw_fill() {
+        canvas = document.getElementById("title_canvas");
+        ctx = canvas.getContext("2d");
+        ctx.beginPath();
+
+        // based off all_pt
+        ctx.moveTo(this.all_pt[0][0], this.all_pt[0][1]);
+        ctx.lineTo(this.all_pt[1][0], this.all_pt[1][1]);
+        ctx.lineTo(this.all_pt[2][0], this.all_pt[2][1]);
+        
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = "red";
+        ctx.fill();
+    }
 
     check_mouse() {
         // need to check the second wall, need to keep a bool to mark how many times this occurs
-        let current_mouse_capt = ctx.isPointInPath(current_mouse_pt.x, current_mouse_pt.y);
+        let current_mouse_capt = ctx.isPointInPath(current_mouse_pt[0], current_mouse_pt[1]);
         if (current_mouse_capt == !this.mouse_capt)
         {  
             //iteration_table.add_ani(this);
@@ -98,7 +117,6 @@ class Triangle {
             // if current = true when previous = false, then add; vice versa
             
             this.wall.push(this.check_wall());
-            console.log(this.wall);
 
             // if the current mouse position is not in the tri when the previous one is, then the mouse has left
             // add the triangle to the animation roster, and calc its moving point from the 2 walls
@@ -116,14 +134,27 @@ class Triangle {
     }
 
     check_mouse_new() {
+        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[0], this.all_pt[1])) this.wall.push(2);
+        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[1], this.all_pt[2])) this.wall.push(0);
+        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[2], this.all_pt[0])) this.wall.push(1);
 
+        //console.log("wall: " + this.wall);
+
+        if (this.wall.length >= 2)
+        {
+            iteration_table.mod_ani(true, this);
+            this.point_moving(3-this.wall[0]-this.wall[1]);
+
+            // now I dont need to check_mouse anymore, just make check_mouse nothing
+            this.check_mouse_new = function() {};
+        }
     }
 
     check_wall() {
         // all need to do is calc distances from the 3 points; whichever point is furthest away, the corresponding wall is closest
-        let distances = [Math.sqrt(Math.pow(current_mouse_pt.x-this.all_pt[0][0],2)+Math.pow(current_mouse_pt.y-this.all_pt[0][1],2)),
-                         Math.sqrt(Math.pow(current_mouse_pt.x-this.all_pt[1][0],2)+Math.pow(current_mouse_pt.y-this.all_pt[1][1],2)),
-                         Math.sqrt(Math.pow(current_mouse_pt.x-this.all_pt[2][0],2)+Math.pow(current_mouse_pt.y-this.all_pt[2][1],2))];
+        let distances = [Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[0][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[0][1],2)),
+                         Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[1][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[1][1],2)),
+                         Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[2][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[2][1],2))];
 
         let max = distances[0];
 
@@ -156,21 +187,19 @@ class Triangle {
         // dont make this global, make the radius global instead
 		let anchor_mid_x = (anchor2_x+anchor1_x)/2;
 		let anchor_mid_y = (anchor2_y+anchor1_y)/2;
-        console.log("anchor mid - " + anchor_mid_x+ ":" + anchor_mid_y);
+        //console.log("anchor mid - " + anchor_mid_x+ ":" + anchor_mid_y);
 
 		// finding the initial coords for the point that moves
-        this.runner_pt[0][0] = this.all_pt[direction][0];
-        this.runner_pt[0][1] = this.all_pt[direction][1];
+        this.runner_pt[0][0] = this.all_pt[direction+0][0];
+        this.runner_pt[0][1] = this.all_pt[direction+0][1];
 
         // find the distance between where the runner_pt starts and the anchor midpoint
         this.radius[0] = (this.runner_pt[0][0] - anchor_mid_x);
         this.radius[1] = (this.runner_pt[0][1] - anchor_mid_y);
-        console.log("radius: " + this.radius);
 
 		// finding final coords for the point that moves, using the midpoint and the initial point
 		this.runner_pt[1][0] = this.runner_pt[0][0] + 2*(anchor_mid_x-this.runner_pt[0][0]);
 		this.runner_pt[1][1] = this.runner_pt[0][1] + 2*(anchor_mid_y-this.runner_pt[0][1]);
-        console.log(this.runner_pt);
 
         // this test confirms that it finds the correct all_pt
         /*
@@ -188,13 +217,14 @@ class Triangle {
         // triangle goes through angle 0-PI, but need to shift it so zero point is midpoint
 
         // not -=, need to grab the starting value from movingcoord
+        console.log("radius array: " + this.radius);
         this.all_pt[direction][0] = this.runner_pt[0][0] - this.radius[0]*(1-Math.cos(this.angle_x));
         this.all_pt[direction][1] = this.runner_pt[0][1] - this.radius[1]*(1-Math.cos(this.angle_y));
 
         this.angle_x += this.step_size;
         this.angle_y += this.step_size;
         this.step_count += 1;
-        console.log(this.step_count);
+        console.log("step count: " + this.step_count);
         if (this.step_count >= this.number_of_steps)
         {
             iteration_table.remove_ani();
@@ -204,13 +234,10 @@ class Triangle {
 
 }
 
+// cant figure out how to fix this so that it outputs an array
 function get_mouse_position(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
-    return {
-        x: evt.clientX - rect.left,
-        y: evt.clientY - rect.top
-        //[evt.clientX - rect.left,evt.clientY - rect.top]
-    };
+    return [evt.clientX - rect.left,evt.clientY - rect.top];
 }
 
 // better ways to do this, like making a class
@@ -249,8 +276,8 @@ let iteration_table = {
 }
 
 // any way to make this not global?
-var past_mouse_pt;
-var current_mouse_pt;
+var previous_mouse_pt = [];
+var current_mouse_pt = [];
 
 function init() {
     canvas = document.getElementById("title_canvas");
@@ -261,7 +288,7 @@ function init() {
     //let canvas_width = 500;
     //let width_ct = 2*canvas_width/(side_length);
 
-    for (let i = 0; i < 200; i++)
+    for (let i = 0; i < 260; i++)
     {
         // for the flip, need to convert 0->1, 1-> -1 --> *-2+1
         let tri=new Triangle(0+side_length*(i%width_ct)/2, // for every side length there is two triangles, so iterate by half tri
@@ -271,10 +298,20 @@ function init() {
         iteration_table.undug_roster.push(tri); // (i/20)%2
     }
 
+    let hori_a = [0,50];
+    let hori_b = [100,50];
+    let vert_a = [50,0];
+    let vert_b = [50,100];
+
+    console.log(do_intersect(hori_a, hori_b, vert_a, vert_b));
+
+
+    
     canvas.addEventListener("mousemove", function(evt) {
-        past_mouse_pt = current_mouse_pt;
+        previous_mouse_pt = current_mouse_pt;
         current_mouse_pt = get_mouse_position(canvas, evt);
     }, false);
+    
 
     timer = setInterval(draw_main, 1000/fps);
     return timer;  
@@ -293,7 +330,8 @@ function draw_main() {
     for (let i=0; i<iteration_table.undug_roster.length; i++)
     {
         iteration_table.undug_roster[i].draw();
-        iteration_table.undug_roster[i].check_mouse();
+
+        //iteration_table.undug_roster[i].check_mouse();
     }
 
     // initializing the leftmost mouse point between current and past
@@ -301,39 +339,60 @@ function draw_main() {
     let rightmost;
 
     // declaring the leftmost mouse point
-    if (past_mouse_pt.x < current_mouse_pt.x) {
-        leftmost = past_mouse_pt;
+    if (previous_mouse_pt[0] < current_mouse_pt[0]) {
+        leftmost = previous_mouse_pt;
         rightmost = current_mouse_pt;
     }
     else {
         leftmost = current_mouse_pt;
-        rightmost = past_mouse_pt;
+        rightmost = previous_mouse_pt;
     }
+    
 
     // declaring the triangle indexes
-    let leftmost_index = width_ct*~~((leftmost.y+Math.sqrt(3)*side_length/4)/height) +
-                    ~~(leftmost.x/(side_length/2));;
-    let rightmost_index = width_ct*~~((rightmost.y+Math.sqrt(3)*side_length/4)/height) +
-                    ~~((rightmost.x+side_length/2)/(side_length/2));
+    let leftmost_index = width_ct*~~((leftmost[1]+Math.sqrt(3)*side_length/4)/height) +
+                    ~~(leftmost[0]/(side_length/2));
+    
+    let rightmost_index = width_ct*~~((rightmost[1]+Math.sqrt(3)*side_length/4)/height) +
+                    ~~((rightmost[0]+side_length/2)/(side_length/2));
+    if (rightmost_index == 0) rightmost_index = 1;
+
+    // finding the y of both of the indices
+    let leftmost_y = ~~(leftmost_index/width_ct);
+    let rightmost_y = ~~(rightmost_index/width_ct);
+
+    // establishing the topleft index, from which we will iterate
+    let lefttop_index;
+    if (leftmost_y <= rightmost_y) lefttop_index = leftmost_index;
+    else lefttop_index = rightmost_index - ((rightmost_index%width_ct)-(leftmost_index%width_ct));
 
     // endcase condition
-    if(rightmost_index == length(iteration_table.undug_roster)) rightmost_index -= 1;
-    console.log("min: " + leftmost_index%width_ct);
-    console.log("max: " + rightmost_index%width_ct);
+    if(rightmost_index == iteration_table.undug_roster.length) rightmost_index -= 1;
 
-    console.log("x coord: " + leftmost_index%width_ct);
+    let x_range = (rightmost_index%width_ct)-(leftmost_index%width_ct)+1;
 
-    let x_range = (rightmost_index%width_ct)-(leftmost_index%width_ct);
-    let y_range = Math.abs(~~(rightmost_index/width_ct)-~~(leftmost_index/width_ct));
+    let y_range = Math.abs(~~(rightmost_index/width_ct)-~~(leftmost_index/width_ct))+1;
 
     // now need to run through the indexes established by the square of the tri indexes
+    // IN THIS LOOP, I NEED TO DO MOUSE_CHECKING_NEW
     for (let i = 0; i<x_range*y_range; i++)
     {
-        iteration_table.undug_roster[leftmost_index + i%x_range + ~~(i/x_range)];
+        //console.log("mouse_check index: " + (leftmost_index + i%x_range + ~~(i/x_range)));
+        iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].draw_fill();
+        iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].check_mouse_new();
     }
+    ctx.beginPath();
+    ctx.moveTo(previous_mouse_pt[0], previous_mouse_pt[1]);
+    ctx.lineTo(current_mouse_pt[0], current_mouse_pt[1]);
+    ctx.closePath();
+    ctx.stroke();
+
+    //console.log("ppo");
 
     // loop through all triangles in the animation_roster(dugup roster), and increment them
     // can just draw them in here as well --> didnt work
+    console.log("animation_roster");
+    console.log(iteration_table.animation_roster);
     for (let i=0; i<iteration_table.animation_roster.length; i++)
     {
         iteration_table.animation_roster[i].increment(3-iteration_table.animation_roster[i].wall[0]-iteration_table.animation_roster[i].wall[1]);
@@ -352,8 +411,8 @@ function index_from_point(point) {
 // checks if point q lies on line segment qr if collinear
 function on_segment(p,q,r)
 {
-    if (qx <= max(p[0], r[0]) && qx >= min(p[0],r[0]) &&
-        qy <= max(p[1], r[1]) && qy >= min(p[1],r[1]))
+    if (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0],r[0]) &&
+        q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1],r[1]))
         return true;
     return false;
 }
@@ -366,12 +425,12 @@ function orientation(p,q,r) {
     return (val >0)?1:2;
 }
 
-function do_interest(p1, q1, p2, q2) {
-    // first fine orientations
+function do_intersect(p1, q1, p2, q2) {
+    // first find orientations
     let o1 = orientation(p1,q1,p2);
     let o2 = orientation(p1,q1,q2);
     let o3 = orientation(p2,q2,p1);
-    let o4 = orientation(p2,q2,p1);
+    let o4 = orientation(p2,q2,q1);
 
     if (o1 != o2 && o3 != o4)
         return true;
