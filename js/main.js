@@ -41,7 +41,7 @@ class Triangle {
 		this.rightx = center_pt_x+side/2;
 		this.righty = this.lefty;
 
-        // will update
+        // will update midx
 		this.all_pt = [[this.midx, this.midy], [this.leftx, this.lefty], [this.rightx, this.righty]];
         // this is updating the sinusoidal increment
         this.angle_x = 0;
