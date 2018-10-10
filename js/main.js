@@ -12,6 +12,8 @@
 //10-2; two options for wall check, either gather all wall checks for all frames and only take the first and last
 //                                  or make check_mouse if function unique
 
+// 10-9: have to fix check_mouse_new, right now its confused
+
 "use strict"
 
 var canvas;
@@ -42,25 +44,21 @@ class Triangle {
 		this.righty = this.lefty;
 
         // will update
-		this.all_pt = [[this.midx, this.midy], [this.leftx, this.lefty], [this.rightx, this.righty]];
+		this.all_pt = [this.midx, this.midy, this.leftx, this.lefty, this.rightx, this.righty];
         // this is updating the sinusoidal increment
         this.angle_x = 0;
         this.angle_y = 0;
 
         // [initial set, final set] will be fixed points, will not update
-        this.runner_pt = [[0,0], [0,0]];
+        this.runner_pt = [0,0,0,0];
 
         // midpoint of the anchor line, the line created by the two points that are not moving
         // will not update after the first point moving
         this.radius = [0,0];
 
-        // this array stores the closest wall to the mouse every single frame
-        // ways to improve, only store when checkMouse turns from false to true, and true to false
-        //this.closest_wall_to_mouse_pos = [];
-
         // this array stores the closest wall when entering and exiting the triangle
         // walls are labeled by the point across from it; 0 is bot, etc;
-        this.wall = [];
+        this.wall = [0,0,0];
 
         // stores the previous bool for when checkMouse case
         this.mouse_capt = false;
@@ -79,10 +77,10 @@ class Triangle {
 		ctx.beginPath();
 
 		// based off all_pt
-		ctx.moveTo(this.all_pt[0][0], this.all_pt[0][1]);
-		ctx.lineTo(this.all_pt[1][0], this.all_pt[1][1]);
-		ctx.lineTo(this.all_pt[2][0], this.all_pt[2][1]);
-		
+		ctx.moveTo(this.all_pt[0], this.all_pt[1]);
+        ctx.lineTo(this.all_pt[2], this.all_pt[3]);
+        ctx.lineTo(this.all_pt[4], this.all_pt[5]);
+
 		ctx.closePath();
 		ctx.stroke();
 
@@ -90,15 +88,16 @@ class Triangle {
         ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
 	}
 
+    // only for debugging, this highlights the triangles about to be checked; the triangles intersecting the previous current mouse pos
     draw_fill() {
         canvas = document.getElementById("title_canvas");
         ctx = canvas.getContext("2d");
         ctx.beginPath();
 
         // based off all_pt
-        ctx.moveTo(this.all_pt[0][0], this.all_pt[0][1]);
-        ctx.lineTo(this.all_pt[1][0], this.all_pt[1][1]);
-        ctx.lineTo(this.all_pt[2][0], this.all_pt[2][1]);
+        ctx.moveTo(this.all_pt[0], this.all_pt[1]);
+        ctx.lineTo(this.all_pt[2], this.all_pt[3]);
+        ctx.lineTo(this.all_pt[4], this.all_pt[5]);
         
         ctx.closePath();
         ctx.stroke();
@@ -106,109 +105,53 @@ class Triangle {
         ctx.fill();
     }
 
-    check_mouse() {
-        // need to check the second wall, need to keep a bool to mark how many times this occurs
-        let current_mouse_capt = ctx.isPointInPath(current_mouse_pt[0], current_mouse_pt[1]);
-        if (current_mouse_capt == !this.mouse_capt)
-        {  
-            //iteration_table.add_ani(this);
-            ////iteration_table.remove_undug(this);
-
-            // if current = true when previous = false, then add; vice versa
-            
-            this.wall.push(this.check_wall());
-
-            // if the current mouse position is not in the tri when the previous one is, then the mouse has left
-            // add the triangle to the animation roster, and calc its moving point from the 2 walls
-            if (!current_mouse_capt && this.mouse_capt)
-            {
-                iteration_table.mod_ani(true, this);
-                this.point_moving(3-this.wall[0]-this.wall[1]);
-
-                // now I dont need to check_mouse anymore, just make check_mouse nothing
-                this.check_mouse = function() {};
-            }
-            
-        }
-        this.mouse_capt = current_mouse_capt;
-    }
-
     check_mouse_new() {
-        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[0], this.all_pt[1])) this.wall.push(2);
-        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[1], this.all_pt[2])) this.wall.push(0);
-        if (do_intersect(previous_mouse_pt, current_mouse_pt, this.all_pt[2], this.all_pt[0])) this.wall.push(1);
+        if (do_intersect(previous_mouse_pt[0], previous_mouse_pt[1], current_mouse_pt[0], current_mouse_pt[1],
+         this.all_pt[0], this.all_pt[1], this.all_pt[2], this.all_pt[3])) this.wall[2] = 1;
+        if (do_intersect(previous_mouse_pt[0], previous_mouse_pt[1], current_mouse_pt[0], current_mouse_pt[1],
+         this.all_pt[2], this.all_pt[3], this.all_pt[4], this.all_pt[5])) this.wall[0] = 1;
+        if (do_intersect(previous_mouse_pt[0], previous_mouse_pt[1], current_mouse_pt[0], current_mouse_pt[1],
+         this.all_pt[4], this.all_pt[5], this.all_pt[0], this.all_pt[1])) this.wall[1] = 1;
 
         //console.log("wall: " + this.wall);
 
-        if (this.wall.length >= 2)
+        if (this.wall[0]+this.wall[1]+this.wall[2] == 2)
         {
             iteration_table.mod_ani(true, this);
-            this.point_moving(3-this.wall[0]-this.wall[1]);
+            this.point_moving(this.wall.indexOf(0));
 
             // now I dont need to check_mouse anymore, just make check_mouse nothing
             this.check_mouse_new = function() {};
         }
     }
 
-    check_wall() {
-        // all need to do is calc distances from the 3 points; whichever point is furthest away, the corresponding wall is closest
-        let distances = [Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[0][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[0][1],2)),
-                         Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[1][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[1][1],2)),
-                         Math.sqrt(Math.pow(current_mouse_pt[0]-this.all_pt[2][0],2)+Math.pow(current_mouse_pt[1]-this.all_pt[2][1],2))];
-
-        let max = distances[0];
-
-        for (let i = 1; i < distances.length; i++)
-        {
-            if (distances[i]>max) max = distances[i];
-        }
-
-        return distances.indexOf(max);
-    }
-
 	point_moving(direction) {
-		// name flip is reserved? --> no, its because a variable is called flip
-        // direction is either 0 (vertical), 1(from left), 2(from right)
-		// direction is also the point which will be moving in the array 0-mid, 1-left, 2-right
+        console.log(direction);
+        switch(direction)
+        {
+            case 0: // across the horizontal
+                this.runner_pt[0] = this.all_pt[0]; // initial x of runner
+                this.runner_pt[1] = this.all_pt[1]; // initial y of runner
+                this.runner_pt[2] = this.all_pt[0]; // final x of runner
+                this.runner_pt[3] = this.all_pt[1]+this.flip*Math.sqrt(3)*this.side; // final y of runner
+                break;
+            case 1: // flipping from left to right
+                this.runner_pt[0] = this.all_pt[2]; // initial x of runner
+                this.runner_pt[1] = this.all_pt[3]; // initial y of runner
+                this.runner_pt[2] = this.all_pt[0]+this.side; // final x of runner
+                this.runner_pt[3] = this.all_pt[1]; // final y of runner
+                break;
+            case 2:
+                this.runner_pt[0] = this.all_pt[4]; // initial x of runner
+                this.runner_pt[1] = this.all_pt[5]; // initial y of runner
+                this.runner_pt[2] = this.all_pt[0]-this.side; // final x of runner
+                this.runner_pt[3] = this.all_pt[1]; // final y of runner
+                break;
+        }
+        console.log(this.runner_pt);
 
-		// getting the points that wont move, or the two other points
-		let anchor1_x = this.all_pt[(direction+1)%3][0];
-		let anchor1_y = this.all_pt[(direction+1)%3][1];
-		//console.log("first anchor - " + anchor1_x+ ":" + anchor1_y);
-
-		let anchor2_x = this.all_pt[(direction+2)%3][0];
-		let anchor2_y = this.all_pt[(direction+2)%3][1];
-        //console.log("second anchor - " + anchor2_x+ ":" + anchor2_y);
-
-		// finding the slope, order doesnt matter
-		let anchor_slope = (anchor2_y-anchor1_y)/(anchor2_x-anchor1_x);
-        //console.log("slope: " + anchor_slope);
-
-        // dont make this global, make the radius global instead
-		let anchor_mid_x = (anchor2_x+anchor1_x)/2;
-		let anchor_mid_y = (anchor2_y+anchor1_y)/2;
-        //console.log("anchor mid - " + anchor_mid_x+ ":" + anchor_mid_y);
-
-		// finding the initial coords for the point that moves
-        this.runner_pt[0][0] = this.all_pt[direction+0][0];
-        this.runner_pt[0][1] = this.all_pt[direction+0][1];
-
-        // find the distance between where the runner_pt starts and the anchor midpoint
-        this.radius[0] = (this.runner_pt[0][0] - anchor_mid_x);
-        this.radius[1] = (this.runner_pt[0][1] - anchor_mid_y);
-
-		// finding final coords for the point that moves, using the midpoint and the initial point
-		this.runner_pt[1][0] = this.runner_pt[0][0] + 2*(anchor_mid_x-this.runner_pt[0][0]);
-		this.runner_pt[1][1] = this.runner_pt[0][1] + 2*(anchor_mid_y-this.runner_pt[0][1]);
-
-        // this test confirms that it finds the correct all_pt
-        /*
-        console.log(this.all_pt);
-        this.all_pt[direction][0] = this.runner_pt[1][0];
-        this.all_pt[direction][1] = this.runner_pt[1][1];
-        console.log(this.all_pt);
-        this.draw();
-        */
+        this.radius[0] = (this.runner_pt[2] - this.runner_pt[0])/2;
+        this.radius[1] = (this.runner_pt[3] - this.runner_pt[1])/2;
 	}
 
     increment(direction) {
@@ -217,24 +160,24 @@ class Triangle {
         // triangle goes through angle 0-PI, but need to shift it so zero point is midpoint
 
         // not -=, need to grab the starting value from movingcoord
-        console.log("radius array: " + this.radius);
-        this.all_pt[direction][0] = this.runner_pt[0][0] - this.radius[0]*(1-Math.cos(this.angle_x));
-        this.all_pt[direction][1] = this.runner_pt[0][1] - this.radius[1]*(1-Math.cos(this.angle_y));
+
+        this.all_pt[2*direction] = this.runner_pt[0] + this.radius[0]*(1-Math.cos(this.angle_x));
+        this.all_pt[2*direction+1] = this.runner_pt[1] + this.radius[1]*(1-Math.cos(this.angle_y));
 
         this.angle_x += this.step_size;
         this.angle_y += this.step_size;
         this.step_count += 1;
-        console.log("step count: " + this.step_count);
+        //console.log("step count: " + this.step_count);
         if (this.step_count >= this.number_of_steps)
         {
             iteration_table.remove_ani();
-            this.step_size=0;
+            this.increment = function() {};
         }
     }
 
 }
 
-// cant figure out how to fix this so that it outputs an array
+// outputs an array containing the mouse position [x, y]
 function get_mouse_position(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
     return [evt.clientX - rect.left,evt.clientY - rect.top];
@@ -391,11 +334,9 @@ function draw_main() {
 
     // loop through all triangles in the animation_roster(dugup roster), and increment them
     // can just draw them in here as well --> didnt work
-    console.log("animation_roster");
-    console.log(iteration_table.animation_roster);
     for (let i=0; i<iteration_table.animation_roster.length; i++)
     {
-        iteration_table.animation_roster[i].increment(3-iteration_table.animation_roster[i].wall[0]-iteration_table.animation_roster[i].wall[1]);
+        iteration_table.animation_roster[i].increment(iteration_table.animation_roster[i].wall.indexOf(0));
         
     }
 }
@@ -409,36 +350,36 @@ function index_from_point(point) {
 // implement with mouse pos functions, past and current?
 
 // checks if point q lies on line segment qr if collinear
-function on_segment(p,q,r)
+function on_segment(px,py,qx,qy,rx,ry)
 {
-    if (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0],r[0]) &&
-        q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1],r[1]))
+    if (qx <= Math.max(px, rx) && qx >= Math.min(px,rx) &&
+        qy <= Math.max(py, ry) && qy >= Math.min(py,ry))
         return true;
     return false;
 }
 
-function orientation(p,q,r) {
-    let val = (q[1]-p[1])*(r[0]-q[0])-
-              (q[0]-p[0])*(r[1]-q[1]);
+function orientation(px,py,qx,qy,rx,ry) {
+    let val = (qy-py)*(rx-qx)-
+              (qx-px)*(ry-qy);
 
     if (val==0) return 0;
     return (val >0)?1:2;
 }
 
-function do_intersect(p1, q1, p2, q2) {
+function do_intersect(p1x, p1y, q1x, q1y, p2x, p2y, q2x, q2y) {
     // first find orientations
-    let o1 = orientation(p1,q1,p2);
-    let o2 = orientation(p1,q1,q2);
-    let o3 = orientation(p2,q2,p1);
-    let o4 = orientation(p2,q2,q1);
+    let o1 = orientation(p1x,p1y,q1x,q1y,p2x,p2y);
+    let o2 = orientation(p1x,p1y,q1x,q1y,q2x,q2y);
+    let o3 = orientation(p2x,p2y,q2x,q2y,p1x,p1y);
+    let o4 = orientation(p2x,p2y,q2x,q2y,q1x,q1y);
 
     if (o1 != o2 && o3 != o4)
         return true;
 
-    if (o1 == 0 && on_segment(p1,p2,q1)) return true;
-    if (o2 == 0 && on_segment(p1,q2,q1)) return true;
-    if (o3 == 0 && on_segment(p2,p1,q2)) return true;
-    if (o4 == 0 && on_segment(p2,q1,q2)) return true;
+    if (o1 == 0 && on_segment(p1x,p1y,p2x,p2y,q1x,q1y)) return true;
+    if (o2 == 0 && on_segment(p1x,p1y,q2x,q2y,q1x,q1y)) return true;
+    if (o3 == 0 && on_segment(p2x,p2y,p1x,p1y,q2x,q2y)) return true;
+    if (o4 == 0 && on_segment(p2x,p2y,q1x,q1y,q2x,q2y)) return true;
 
     return false;
 
