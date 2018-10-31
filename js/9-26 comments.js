@@ -1,4 +1,6 @@
 // need to fix the hard code at increment, right now its hard coded at direction 2
+//cp /u/z/users/mitra/jscript/dhtml/* .
+
 
 "use strict"
 
@@ -70,7 +72,7 @@ class Triangle {
 		ctx.moveTo(this.coordinates[0][0], this.coordinates[0][1]);
 		ctx.lineTo(this.coordinates[1][0], this.coordinates[1][1]);
 		ctx.lineTo(this.coordinates[2][0], this.coordinates[2][1]);
-		
+
 
 		// based off geometric center again, but just moving origin first DOESNT WORK
 		/*
@@ -152,7 +154,7 @@ class Triangle {
         let number_of_steps = length*fps;
         let step_size = Math.PI/number_of_steps;
 
-        
+
         // calling radius because in a circle projection it is radius
         //let radiusx = (3/4)*this.side;
         //let radiusy = (Math.sqrt(3)/4)*this.side;
@@ -172,14 +174,14 @@ class Triangle {
 }
 
 function init() {
-    
+
     canvas = document.getElementById("title_canvas");
     ctx = canvas.getContext("2d");
     tri1.point_moving(1);
     timer = setInterval(draw_main, 1000/fps);
     console.log(tri1.midx);
     return timer;
-    
+
 }
 
 function draw_main() {

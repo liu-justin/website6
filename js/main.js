@@ -19,7 +19,7 @@
 var canvas;
 var ctx;
 var timer;
-var fps = 50;
+var fps = 100;
 
 class Triangle {
 
@@ -43,37 +43,40 @@ class Triangle {
 		this.rightx = center_pt_x+side/2;
 		this.righty = this.lefty;
 
+		this.starting = false;
+
         // will update
 		this.all_pt = [this.midx, this.midy, this.leftx, this.lefty, this.rightx, this.righty];
-        // this is updating the sinusoidal increment
-        this.angle_x = 0;
-        this.angle_y = 0;
+    // this is updating the sinusoidal increment
+    this.angle_x = 0;
+    this.angle_y = 0;
 
-        // [initial set, final set] will be fixed points, will not update
-        this.runner_pt = [0,0,0,0];
+    // [initial set, final set] will be fixed points, will not update
+    this.runner_pt = [0,0,0,0];
 
-        // midpoint of the anchor line, the line created by the two points that are not moving
-        // will not update after the first point moving
-        this.radius = [0,0];
+    // midpoint of the anchor line, the line created by the two points that are not moving
+    // will not update after the first point moving
+    this.radius = [0,0];
 
-        // this array stores the closest wall when entering and exiting the triangle
-        // walls are labeled by the point across from it; 0 is bot, etc;
-        this.wall = [0,0,0];
+    // this array stores the closest wall when entering and exiting the triangle
+    // walls are labeled by the point across from it; 0 is bot, etc;
+    this.wall = [0,0,0];
 
-        // stores the previous bool for when checkMouse case
-        this.mouse_capt = false;
+    // stores the previous bool for when checkMouse case
+    this.mouse_capt = false;
 
-        // need to have the animation length in seconds
-        // copy pasted from increment method, forgot to change let to this.
-        this.length = 1;
-        this.number_of_steps = this.length*fps;
-        this.step_size = Math.PI/this.number_of_steps;
-        this.step_count = 0;
-    }
+    // need to have the animation length in seconds
+    // copy pasted from increment method, forgot to change let to this.
+    this.length = 1;
+    this.number_of_steps = this.length*fps;
+    this.step_size = Math.PI/this.number_of_steps;
+    this.step_count = 0;
+  }
 
 	draw() {
         canvas = document.getElementById("title_canvas");
         ctx = canvas.getContext("2d");
+
 		ctx.beginPath();
 
 		// based off all_pt
@@ -82,14 +85,27 @@ class Triangle {
         ctx.lineTo(this.all_pt[4], this.all_pt[5]);
 
 		ctx.closePath();
+		ctx.strokestyle="white";
 		ctx.stroke();
+		ctx.fillstyle="white";
+		ctx.fill();
+
+
+        // if the flip is halfway through its animation, fill it
+        // if (this.step_count >= this.number_of_steps/2)
+        // {
+        //     ctx.fillstyle="white";
+        //     ctx.fill();
+        // }
 
         ctx.font = "10px Arial";
+				ctx.fillstyle="red";
         ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
+				ctx.fillstyle="white";
 	}
 
     // only for debugging, this highlights the triangles about to be checked; the triangles intersecting the previous current mouse pos
-    draw_fill() {
+    draw_checked_ts() {
         canvas = document.getElementById("title_canvas");
         ctx = canvas.getContext("2d");
         ctx.beginPath();
@@ -98,11 +114,14 @@ class Triangle {
         ctx.moveTo(this.all_pt[0], this.all_pt[1]);
         ctx.lineTo(this.all_pt[2], this.all_pt[3]);
         ctx.lineTo(this.all_pt[4], this.all_pt[5]);
-        
+
         ctx.closePath();
         ctx.stroke();
-        ctx.fillStyle = "red";
+        ctx.fillStyle = "pink";
         ctx.fill();
+
+        ctx.fillStyle = "black";
+        ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
     }
 
     check_mouse_new() {
@@ -113,7 +132,7 @@ class Triangle {
         if (do_intersect(previous_mouse_pt[0], previous_mouse_pt[1], current_mouse_pt[0], current_mouse_pt[1],
          this.all_pt[4], this.all_pt[5], this.all_pt[0], this.all_pt[1])) this.wall[1] = 1;
 
-        //console.log("wall: " + this.wall);
+        //console.log("wall " + iteration_table.undug_roster.indexOf(this) + ": " + this.wall);
 
         if (this.wall[0]+this.wall[1]+this.wall[2] == 2)
         {
@@ -126,35 +145,56 @@ class Triangle {
     }
 
 	point_moving(direction) {
-        console.log(direction);
+        //console.log(direction);
         switch(direction)
-        {
-            case 0: // across the horizontal
-                this.runner_pt[0] = this.all_pt[0]; // initial x of runner
-                this.runner_pt[1] = this.all_pt[1]; // initial y of runner
-                this.runner_pt[2] = this.all_pt[0]; // final x of runner
-                this.runner_pt[3] = this.all_pt[1]+this.flip*Math.sqrt(3)*this.side; // final y of runner
-                break;
-            case 1: // flipping from left to right
-                this.runner_pt[0] = this.all_pt[2]; // initial x of runner
-                this.runner_pt[1] = this.all_pt[3]; // initial y of runner
-                this.runner_pt[2] = this.all_pt[0]+this.side; // final x of runner
-                this.runner_pt[3] = this.all_pt[1]; // final y of runner
-                break;
-            case 2:
-                this.runner_pt[0] = this.all_pt[4]; // initial x of runner
-                this.runner_pt[1] = this.all_pt[5]; // initial y of runner
-                this.runner_pt[2] = this.all_pt[0]-this.side; // final x of runner
-                this.runner_pt[3] = this.all_pt[1]; // final y of runner
-                break;
-        }
-        console.log(this.runner_pt);
+        // {
+        //     case 0: // across the horizontal
+        //         this.runner_pt[0] = this.all_pt[0]; // initial x of runner
+        //         this.runner_pt[1] = this.all_pt[1]; // initial y of runner
+        //         this.runner_pt[2] = this.all_pt[0]; // final x of runner
+        //         this.runner_pt[3] = this.all_pt[1]+this.flip*Math.sqrt(3)*this.side; // final y of runner
+        //         break;
+        //     case 1: // flipping from left to right
+        //         this.runner_pt[0] = this.all_pt[2]; // initial x of runner
+        //         this.runner_pt[1] = this.all_pt[3]; // initial y of runner
+        //         this.runner_pt[2] = this.all_pt[0]+this.side; // final x of runner
+        //         this.runner_pt[3] = this.all_pt[1]; // final y of runner
+        //         break;
+        //     case 2:
+        //         this.runner_pt[0] = this.all_pt[4]; // initial x of runner
+        //         this.runner_pt[1] = this.all_pt[5]; // initial y of runner
+        //         this.runner_pt[2] = this.all_pt[0]-this.side; // final x of runner
+        //         this.runner_pt[3] = this.all_pt[1]; // final y of runner
+        //         break;
+        // }
+
+				{
+						case 0: // across the horizontal
+								this.runner_pt[0] = this.all_pt[0]; // initial x of runner
+								this.runner_pt[1] = this.all_pt[1]; // initial y of runner
+								this.runner_pt[2] = this.all_pt[0]; // final x of runner
+								this.runner_pt[3] = this.all_pt[3]; // final y of runner
+								break;
+						case 1: // flipping from left to right
+								this.runner_pt[0] = this.all_pt[2]; // initial x of runner
+								this.runner_pt[1] = this.all_pt[3]; // initial y of runner
+								this.runner_pt[2] = (this.all_pt[0]+this.all_pt[4])/2; // final x of runner
+								this.runner_pt[3] = (this.all_pt[1]+this.all_pt[5])/2;; // final y of runner
+								break;
+						case 2:
+								this.runner_pt[0] = this.all_pt[4]; // initial x of runner
+								this.runner_pt[1] = this.all_pt[5]; // initial y of runner
+								this.runner_pt[2] = (this.all_pt[0]+this.all_pt[2])/2;; // final x of runner
+								this.runner_pt[3] = (this.all_pt[1]+this.all_pt[3])/2;; // final y of runner
+								break;
+				}
 
         this.radius[0] = (this.runner_pt[2] - this.runner_pt[0])/2;
         this.radius[1] = (this.runner_pt[3] - this.runner_pt[1])/2;
 	}
 
     increment(direction) {
+			this.starting=true;
         // need to make it sinusoidal, increment angle linearly and grab the sine of it
 
         // triangle goes through angle 0-PI, but need to shift it so zero point is midpoint
@@ -170,6 +210,7 @@ class Triangle {
         //console.log("step count: " + this.step_count);
         if (this.step_count >= this.number_of_steps)
         {
+
             iteration_table.remove_ani();
             this.increment = function() {};
         }
@@ -225,7 +266,7 @@ var current_mouse_pt = [];
 function init() {
     canvas = document.getElementById("title_canvas");
     ctx = canvas.getContext("2d");
-    
+
     //let side_length = 50;
     //let height = Math.sqrt(3)/2*side_length;
     //let canvas_width = 500;
@@ -249,15 +290,15 @@ function init() {
     console.log(do_intersect(hori_a, hori_b, vert_a, vert_b));
 
 
-    
+
     canvas.addEventListener("mousemove", function(evt) {
         previous_mouse_pt = current_mouse_pt;
         current_mouse_pt = get_mouse_position(canvas, evt);
     }, false);
-    
+
 
     timer = setInterval(draw_main, 1000/fps);
-    return timer;  
+    return timer;
 }
 
 let side_length = 50;
@@ -268,6 +309,7 @@ let width_ct = 2*canvas_width/(side_length);
 function draw_main() {
     // clear the screen first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
 
     // loop through all triangles in the undug_roster, draw them and check_mouse
     for (let i=0; i<iteration_table.undug_roster.length; i++)
@@ -290,12 +332,12 @@ function draw_main() {
         leftmost = current_mouse_pt;
         rightmost = previous_mouse_pt;
     }
-    
+
 
     // declaring the triangle indexes
     let leftmost_index = width_ct*~~((leftmost[1]+Math.sqrt(3)*side_length/4)/height) +
                     ~~(leftmost[0]/(side_length/2));
-    
+
     let rightmost_index = width_ct*~~((rightmost[1]+Math.sqrt(3)*side_length/4)/height) +
                     ~~((rightmost[0]+side_length/2)/(side_length/2));
     if (rightmost_index == 0) rightmost_index = 1;
@@ -308,22 +350,24 @@ function draw_main() {
     let lefttop_index;
     if (leftmost_y <= rightmost_y) lefttop_index = leftmost_index;
     else lefttop_index = rightmost_index - ((rightmost_index%width_ct)-(leftmost_index%width_ct));
+    lefttop_index = lefttop_index - 1 - width_ct;
 
     // endcase condition
     if(rightmost_index == iteration_table.undug_roster.length) rightmost_index -= 1;
 
-    let x_range = (rightmost_index%width_ct)-(leftmost_index%width_ct)+1;
+    let x_range = (rightmost_index%width_ct)-(leftmost_index%width_ct)+2;
 
-    let y_range = Math.abs(~~(rightmost_index/width_ct)-~~(leftmost_index/width_ct))+1;
+    let y_range = Math.abs(~~(rightmost_index/width_ct)-~~(leftmost_index/width_ct))+3;
 
     // now need to run through the indexes established by the square of the tri indexes
     // IN THIS LOOP, I NEED TO DO MOUSE_CHECKING_NEW
     for (let i = 0; i<x_range*y_range; i++)
     {
         //console.log("mouse_check index: " + (leftmost_index + i%x_range + ~~(i/x_range)));
-        iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].draw_fill();
+        //iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].draw_checked_ts();
         iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].check_mouse_new();
     }
+
     ctx.beginPath();
     ctx.moveTo(previous_mouse_pt[0], previous_mouse_pt[1]);
     ctx.lineTo(current_mouse_pt[0], current_mouse_pt[1]);
@@ -332,12 +376,13 @@ function draw_main() {
 
     //console.log("ppo");
 
+
     // loop through all triangles in the animation_roster(dugup roster), and increment them
     // can just draw them in here as well --> didnt work
     for (let i=0; i<iteration_table.animation_roster.length; i++)
     {
         iteration_table.animation_roster[i].increment(iteration_table.animation_roster[i].wall.indexOf(0));
-        
+
     }
 }
 
