@@ -43,34 +43,32 @@ class Triangle {
 		this.rightx = center_pt_x+side/2;
 		this.righty = this.lefty;
 
-		this.starting = false;
-
         // will update
 		this.all_pt = [this.midx, this.midy, this.leftx, this.lefty, this.rightx, this.righty];
-    // this is updating the sinusoidal increment
-    this.angle_x = 0;
-    this.angle_y = 0;
+	    // this is updating the sinusoidal increment
+	    this.angle_x = 0;
+	    this.angle_y = 0;
 
-    // [initial set, final set] will be fixed points, will not update
-    this.runner_pt = [0,0,0,0];
+	    // [initial set, final set] will be fixed points, will not update
+	    this.runner_pt = [0,0,0,0];
 
-    // midpoint of the anchor line, the line created by the two points that are not moving
-    // will not update after the first point moving
-    this.radius = [0,0];
+	    // midpoint of the anchor line, the line created by the two points that are not moving
+	    // will not update after the first point moving
+	    this.radius = [0,0];
 
-    // this array stores the closest wall when entering and exiting the triangle
-    // walls are labeled by the point across from it; 0 is bot, etc;
-    this.wall = [0,0,0];
+	    // this array stores the closest wall when entering and exiting the triangle
+	    // walls are labeled by the point across from it; 0 is bot, etc;
+	    this.wall = [0,0,0];
 
-    // stores the previous bool for when checkMouse case
-    this.mouse_capt = false;
+	    // stores the previous bool for when checkMouse case
+	    this.mouse_capt = false;
 
-    // need to have the animation length in seconds
-    // copy pasted from increment method, forgot to change let to this.
-    this.length = 1;
-    this.number_of_steps = this.length*fps;
-    this.step_size = Math.PI/this.number_of_steps;
-    this.step_count = 0;
+	    // need to have the animation length in seconds
+	    // copy pasted from increment method, forgot to change let to this.
+	    this.length = 1;
+	    this.number_of_steps = this.length*fps;
+	    this.step_size = Math.PI/this.number_of_steps;
+	    this.step_count = 0;
   }
 
 	draw() {
@@ -85,9 +83,9 @@ class Triangle {
         ctx.lineTo(this.all_pt[4], this.all_pt[5]);
 
 		ctx.closePath();
-		ctx.strokestyle="white";
+
 		ctx.stroke();
-		ctx.fillstyle="white";
+		ctx.fillStyle="black";
 		ctx.fill();
 
 
@@ -98,10 +96,10 @@ class Triangle {
         //     ctx.fill();
         // }
 
-        ctx.font = "10px Arial";
-				ctx.fillstyle="red";
-        ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
-				ctx.fillstyle="white";
+  //       ctx.font = "10px Arial";
+		// ctx.fillStyle="red";
+  //       ctx.fillText(iteration_table.drawn_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
+		// ctx.fillStyle="white";
 	}
 
     // only for debugging, this highlights the triangles about to be checked; the triangles intersecting the previous current mouse pos
@@ -120,8 +118,7 @@ class Triangle {
         ctx.fillStyle = "pink";
         ctx.fill();
 
-        ctx.fillStyle = "black";
-        ctx.fillText(iteration_table.undug_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
+        ctx.fillText(iteration_table.drawn_roster.indexOf(this),this.center_pt_x-10,this.center_pt_y+this.flip*10);
     }
 
     check_mouse_new() {
@@ -132,11 +129,11 @@ class Triangle {
         if (do_intersect(previous_mouse_pt[0], previous_mouse_pt[1], current_mouse_pt[0], current_mouse_pt[1],
          this.all_pt[4], this.all_pt[5], this.all_pt[0], this.all_pt[1])) this.wall[1] = 1;
 
-        //console.log("wall " + iteration_table.undug_roster.indexOf(this) + ": " + this.wall);
+        //console.log("wall " + iteration_table.drawn_roster.indexOf(this) + ": " + this.wall);
 
         if (this.wall[0]+this.wall[1]+this.wall[2] == 2)
         {
-            iteration_table.mod_ani(true, this);
+            iteration_table.add_ani(this);
             this.point_moving(this.wall.indexOf(0));
 
             // now I dont need to check_mouse anymore, just make check_mouse nothing
@@ -194,7 +191,6 @@ class Triangle {
 	}
 
     increment(direction) {
-			this.starting=true;
         // need to make it sinusoidal, increment angle linearly and grab the sine of it
 
         // triangle goes through angle 0-PI, but need to shift it so zero point is midpoint
@@ -208,11 +204,12 @@ class Triangle {
         this.angle_y += this.step_size;
         this.step_count += 1;
         //console.log("step count: " + this.step_count);
-        if (this.step_count >= this.number_of_steps)
+        if (this.step_count >= this.number_of_steps-1)
         {
-
-            iteration_table.remove_ani();
+            iteration_table.remove_ani(this);
+			this.draw = function() {};
             this.increment = function() {};
+
         }
     }
 
@@ -224,14 +221,8 @@ function get_mouse_position(canvas, evt) {
     return [evt.clientX - rect.left,evt.clientY - rect.top];
 }
 
-// better ways to do this, like making a class
-// method to add triangles
-// attribute for number of steps comes from the triangle  class
-// after a triangle reaches the number of steps, remove the triangle from the array
-
-
 let iteration_table = {
-    undug_roster: [],
+    drawn_roster: [],
     animation_roster: [],
     length: 1,
     number_of_steps: function() {return this.length*fps;},
@@ -244,18 +235,15 @@ let iteration_table = {
         let index = this.animation_roster.indexOf(x);
         if(typeof this.animation_roster[index] === 'undefined') this.animation_roster.push(x);
     },
-    remove_ani: function() {
-        this.animation_roster.shift();
-    },
-
-    mod_ani: function(b, x) {
-        if (b) this.add_ani(x);
-        else this.remove_ani();
+    remove_ani: function(x) {
+        let index = this.animation_roster.indexOf(x);
+        this.animation_roster.splice(index,1);
     },
 
     remove_undug: function(x) {
-        let index = this.undug_roster.indexOf(x);
-        this.undug_roster.splice(index,1);
+        let index = this.drawn_roster.indexOf(x);
+        //this.drawn_roster.splice(index,1);
+				//drawn_roster[index]=null;
     }
 }
 
@@ -265,6 +253,8 @@ var current_mouse_pt = [];
 
 function init() {
     canvas = document.getElementById("title_canvas");
+    canvas.width = self.innerWidth;
+    canvas.height = self.innerHeight;
     ctx = canvas.getContext("2d");
 
     //let side_length = 50;
@@ -279,21 +269,13 @@ function init() {
                              0+height *~~(i/width_ct), // use the big triangle to find height of each triangle
                              side_length, // length of the side, just a parameter we need to put in
                              ((i%2)^((i/width_ct)%2))*-2+1); // how to flip, distinction between even and odd rows
-        iteration_table.undug_roster.push(tri); // (i/20)%2
+        iteration_table.drawn_roster.push(tri); // (i/20)%2
     }
-
-    let hori_a = [0,50];
-    let hori_b = [100,50];
-    let vert_a = [50,0];
-    let vert_b = [50,100];
-
-    console.log(do_intersect(hori_a, hori_b, vert_a, vert_b));
-
-
 
     canvas.addEventListener("mousemove", function(evt) {
         previous_mouse_pt = current_mouse_pt;
         current_mouse_pt = get_mouse_position(canvas, evt);
+        console.log(current_mouse_pt);
     }, false);
 
 
@@ -301,71 +283,66 @@ function init() {
     return timer;
 }
 
-let side_length = 50;
+// want to keep number of triangles even across platforms and different aspect ratios
+let total_triangles = 240;
+let vertical_scale = window.innerHeight/(Math.sqrt(3)/2);
+let horizontal_scale = window.innerWidth/2;
+
+let scaler = Math.sqrt(total_triangles/(horizontal_scale*vertical_scale));
+
+let horizontal_triangles = horizontal_scale*scaler;
+
+
+let side_length = window.innerWidth/horizontal_triangles*1.1;
 let height = Math.sqrt(3)*side_length/2;
-let canvas_width = 500;
-let width_ct = 2*canvas_width/(side_length);
+let width_ct = 2*Math.floor(horizontal_triangles);
 
 function draw_main() {
     // clear the screen first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 
-    // loop through all triangles in the undug_roster, draw them and check_mouse
-    for (let i=0; i<iteration_table.undug_roster.length; i++)
+    // loop through all triangles in the drawn_roster, draw them and check_mouse
+    for (let i=0; i<iteration_table.drawn_roster.length; i++)
     {
-        iteration_table.undug_roster[i].draw();
+        iteration_table.drawn_roster[i].draw();
 
-        //iteration_table.undug_roster[i].check_mouse();
+        //iteration_table.drawn_roster[i].check_mouse();
     }
 
-    // initializing the leftmost mouse point between current and past
-    let leftmost;
-    let rightmost;
+    let left_pt = ((previous_mouse_pt[0]<current_mouse_pt[0]) ? previous_mouse_pt : current_mouse_pt );
+    let right_pt = ((previous_mouse_pt[0]>current_mouse_pt[0]) ? previous_mouse_pt : current_mouse_pt );;
 
-    // declaring the leftmost mouse point
-    if (previous_mouse_pt[0] < current_mouse_pt[0]) {
-        leftmost = previous_mouse_pt;
-        rightmost = current_mouse_pt;
-    }
-    else {
-        leftmost = current_mouse_pt;
-        rightmost = previous_mouse_pt;
-    }
 
+
+    // to determine which row the points lie, have to subtract y coord from the topmost level
+    // first term is the ycoord with respect to the top of the row;
+    let left_row = ~~((left_pt[1] + Math.sqrt(3)*side_length/4)/height);
+    let left_column = ~~(left_pt[0]/(side_length/2));
+
+    let right_row = ~~((right_pt[1] + Math.sqrt(3)*side_length/4)/height);
+    let right_column = ~~((right_pt[0]+side_length/2)/(side_length/2));
 
     // declaring the triangle indexes
-    let leftmost_index = width_ct*~~((leftmost[1]+Math.sqrt(3)*side_length/4)/height) +
-                    ~~(leftmost[0]/(side_length/2));
-
-    let rightmost_index = width_ct*~~((rightmost[1]+Math.sqrt(3)*side_length/4)/height) +
-                    ~~((rightmost[0]+side_length/2)/(side_length/2));
-    if (rightmost_index == 0) rightmost_index = 1;
-
-    // finding the y of both of the indices
-    let leftmost_y = ~~(leftmost_index/width_ct);
-    let rightmost_y = ~~(rightmost_index/width_ct);
+    let left_index = width_ct*left_row + left_column;
+    let right_index = width_ct*right_row + right_column;
 
     // establishing the topleft index, from which we will iterate
-    let lefttop_index;
-    if (leftmost_y <= rightmost_y) lefttop_index = leftmost_index;
-    else lefttop_index = rightmost_index - ((rightmost_index%width_ct)-(leftmost_index%width_ct));
-    lefttop_index = lefttop_index - 1 - width_ct;
+    let lefttop_index = Math.min(left_row, right_row)*width_ct + left_column;
 
-    // endcase condition
-    if(rightmost_index == iteration_table.undug_roster.length) rightmost_index -= 1;
+    // +1 because it needs to check the row the bottom coord is on, and the column the rightmost is on
+    let x_range = (right_column-left_column)+1;
+    let y_range = Math.abs(left_row-right_row) + 1;
 
-    let x_range = (rightmost_index%width_ct)-(leftmost_index%width_ct)+2;
-
-    let y_range = Math.abs(~~(rightmost_index/width_ct)-~~(leftmost_index/width_ct))+3;
+    //console.log(x_range + ":" + y_range);
 
     // now need to run through the indexes established by the square of the tri indexes
     // IN THIS LOOP, I NEED TO DO MOUSE_CHECKING_NEW
     for (let i = 0; i<x_range*y_range; i++)
     {
         //console.log("mouse_check index: " + (leftmost_index + i%x_range + ~~(i/x_range)));
-        //iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].draw_checked_ts();
-        iteration_table.undug_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].check_mouse_new();
+        //iteration_table.drawn_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].draw_checked_ts();
+        iteration_table.drawn_roster[lefttop_index + i%x_range + ~~(i/x_range)*width_ct].check_mouse_new();
     }
 
     ctx.beginPath();
@@ -386,9 +363,9 @@ function draw_main() {
     }
 }
 
-function index_from_point(point) {
-    return width_ct*~~((point.y+Math.sqrt(3)*side_length/4)/height) +
-                    ~~(point.x/(side_length/2));
+function index_from_point(arr) {
+    return width_ct*~~((arr[1]+Math.sqrt(3)*side_length/4)/height) +
+                    ~~(arr[0]/(side_length/2));
 }
 
 // line segment intersection code
